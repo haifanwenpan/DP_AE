@@ -9,6 +9,7 @@
   - [ROI CRC Calculate](#roi-crc-calculate)
   - [CRC Check Contrl](#crc-check-contrl)
   - [Frame Counting and Timeout Monitoring](#frame-counting-and-timeout-monitoring)
+  - [Debug Counter](#debug-counter)
 
 ## Function of Profile 0
 
@@ -70,7 +71,7 @@
 | AE_SDP_UPDATE                        | AE_SDP_DATA_UPDATE_1p<br>Used to transition the main state                                                                                                                                                                                                                                                    |
 | AE_SDP_DUR                           | set:<br>Transition A_S0:A_S1<br>clear:<br>vcnt==1<br>Timeout<br>M_S0                                                                                                                                                                                                                                          |
 | AE_SDP_LOSS                          | (A_S3 \|\| !AE_SDP_DUR && (vcnt==1)) && (M_S3 \|\| M_S4 \|\| M_S5)                                                                                                                                                                                                                                            |
-| ALL_CHECK                            | CRC, Frame ID, and Timeout checks<br>AE_SDP_UPDATE_1p && M_S5                                                                                                                                                                                                                                                 | F |
+| ALL_CHECK                            | CRC, Frame ID, and Timeout checks<br>AE_SDP_UPDATE_delay && M_S5                                                                                                                                                                                                                                              | F |
 
 - [x] AE_SDP chaind error occurred, the whole chain will be ignored.
   
@@ -203,11 +204,29 @@ assign H_VALID_RIGHT = HCNT == HRIGHT[15:2];
 
 ## Frame Counting and Timeout Monitoring
 
-|                                  | run                                                                                             | load/value                  | clear                                                           | increment | initial |
-| -------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------- | --------- | ------- |
-| FRAME_ID Cnt                     | M_S5 && Vblank up                                                                               | ALL_CHECK/FRAME_ID received | !M_S5                                                           | 1         | 0       |
-| AE_SDP Timeout Cnt               | M_S5 && every 10us && AE_SDP Timeout Cnt <= TIMEOUT_WINDOW_MAX                                  |                             | ALL_CHECK<br>AE_SDP Timeout Cnt > TIMEOUT_WINDOW_MAX<br>!(M_S5) | 1         | 0       |
-| Soft Fail Cnt for CRC, FRAME_ID  | ALL_CHECK && NOT_EQ<br>AE_SDP_LOSS                                                              |                             | !M_S5<br>Soft Fail Cnt > MAX_THRES                              | 1         | 0       |
-| Soft Fail Cnt for AE_SDP Timeout | ALL_CHECK && AE_SDP Timeout Cnt < TIMEOUT_WINDOW_MIN<br>AE_SDP Timeout Cnt > TIMEOUT_WINDOW_MAX |                             | !M_S5<br>Soft Fail Cnt > MAX_THRES                              | 1         | 0       |
+|                                  | run                                                                                             | load/value                  | clear                                                                 | increment | initial |
+| -------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------- | --------- | ------- |
+| FRAME_ID Cnt                     | M_S5 && Vblank up                                                                               | ALL_CHECK/FRAME_ID received | !M_S5                                                                 | 1         | 0       |
+| AE_SDP Timeout Cnt               | M_S5 && every 10us && AE_SDP Timeout Cnt <= TIMEOUT_WINDOW_MAX                                  |                             | ALL_CHECK<br>AE_SDP Timeout Cnt > TIMEOUT_WINDOW_MAX<br>!(M_S5)       | 1         | 0       |
+| Soft Fail Cnt for CRC, FRAME_ID  | ALL_CHECK && NOT_EQ<br>AE_SDP_LOSS                                                              |                             | !M_S5<br>Soft Fail Cnt > MAX_THRES<br>SOFT_FAIL_COUNTER_RESET(00A32h) | 1         | 0       |
+| Soft Fail Cnt for AE_SDP Timeout | ALL_CHECK && AE_SDP Timeout Cnt < TIMEOUT_WINDOW_MIN<br>AE_SDP Timeout Cnt > TIMEOUT_WINDOW_MAX |                             | !M_S5<br>Soft Fail Cnt > MAX_THRES<br>SOFT_FAIL_COUNTER_RESET(00A32h) | 1         | 0       |
 
 **When Timeout Window Max occurs, AE_SDP is still received before vactive, which can cause an additional Timeout Window Min error**
+
+## Debug Counter
+
+> DEBUG_FUSA_CONFIG_FRAME_ID_INTERVAL
+>
+> This is a debug register used by software to synchronize the reading of the internal debug status table.
+>
+> In normal operations, this register is set to 0 and interrupts are only 
+generated when an error occurs.  
+>
+> When DEBUG_FUSA_CONFIG_FRAME_ID_INTERVAL is programmed to a value other than 0, an internal DP AE Sink counter increments every FRAME_ID until the count matches the interval and an interrupt is triggered to signal to the DP AE Source that values are available.
+>
+> When the internal counter matches, the entire internal debug status table is updated and held static until the next interval is reached when it
+is updated again.  The internal counter is reset to 0 once the debug values are latched and the next interval count is started.
+
+|                                         | run                                                          | clear                                                                           | increment | initial |
+| --------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------- | --------- | ------- |
+| DP_AE_FUSA_CONFIG_FRAME_ID_INTERVAL Cnt | M_S5 && Vblank up && DP_AE_FUSA_CONFIG_FRAME_ID_INTERVAL !=0 | DP_AE_FUSA_CONFIG_FRAME_ID_INTERVAL Cnt \== DP_AE_FUSA_CONFIG_FRAME_ID_INTERVAL | 1         | 0       |
