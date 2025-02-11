@@ -1,17 +1,17 @@
-# DP Automotive Extension Services Architecture Specification
-- [DP Automotive Extension Services Architecture Specification](#dp-automotive-extension-services-architecture-specification)
-  - [Function of Profile 0](#function-of-profile-0)
-  - [Main State](#main-state)
-  - [AE\_SDP Chain Update State](#ae_sdp-chain-update-state)
-  - [AE\_SDP Chain CRC Calculate](#ae_sdp-chain-crc-calculate)
-  - [Defined SDPs CRC Map State](#defined-sdps-crc-map-state)
-  - [Defined SDP CRC Calculate](#defined-sdp-crc-calculate)
-  - [ROI CRC Calculate](#roi-crc-calculate)
-  - [CRC Check Contrl](#crc-check-contrl)
-  - [Frame Counting and Timeout Monitoring](#frame-counting-and-timeout-monitoring)
-  - [Debug Counter](#debug-counter)
+# 1. DP Automotive Extension Services Architecture Specification
+- [1. DP Automotive Extension Services Architecture Specification](#1-dp-automotive-extension-services-architecture-specification)
+  - [1.1. Function of Profile 0](#11-function-of-profile-0)
+  - [1.2. Main State](#12-main-state)
+  - [1.3. AE SDP Chain Update State](#13-ae-sdp-chain-update-state)
+  - [1.4. AE SDP Chain CRC Calculate](#14-ae-sdp-chain-crc-calculate)
+  - [1.5. Defined SDPs CRC Map State](#15-defined-sdps-crc-map-state)
+  - [1.6. Defined SDP CRC Calculate](#16-defined-sdp-crc-calculate)
+  - [1.7. ROI CRC Calculate](#17-roi-crc-calculate)
+  - [1.8. CRC Check Contrl](#18-crc-check-contrl)
+  - [1.9. Frame Counting and Timeout Monitoring](#19-frame-counting-and-timeout-monitoring)
+  - [1.10. Debug Counter](#110-debug-counter)
 
-## Function of Profile 0
+## 1.1. Function of Profile 0
 
 | AE Spec<br>Feature                                                           | RTL change plan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Normative shall be <br>implemented | Note                                                                                                                                                                                                          |
 | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -27,7 +27,9 @@
 | DP AE Safety Self-Test                                                       |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Optional                           | The DP Sink device may not display any test pattern information on the screen during this initialization.<br>How does sink recognize this state                                                               |
 | ~~Super Frames~~                                                             |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Optional                           | Branch should support                                                                                                                                                                                         |
 
-## Main State
+<div STYLE="page-break-after: always;"></div>
+
+## 1.2. Main State
 
 ![Main State Diagram](pic/M_STATE.drawio.svg "Main State Diagram")
 
@@ -48,7 +50,9 @@
 | Transition M_S5:M_S2                               | FUSA_COMPARE = 0 received<br>MNORMAL && VFAIL                                                                                                                                                                                                                                                        |
 | Transition M_S3,M_S4:M_S2                          | AE_SDP_LOSS<br>FUSA_COMPARE = 0 received<br>MNORMAL && VFAIL                                                                                                                                                                                                                                         |
 
-## AE_SDP Chain Update State
+<div STYLE="page-break-after: always;"></div>
+
+## 1.3. AE SDP Chain Update State
 
 ![AE_SDP Chain Update State Diagram](pic/AE_SDP.svg "AE_SDP Chain Update State Diagram")
 
@@ -73,15 +77,15 @@
 | AE_SDP_LOSS                          | (A_S3 \|\| !AE_SDP_DUR && (vcnt==1)) && (M_S3 \|\| M_S4 \|\| M_S5)                                                                                                                                                                                                                                            |
 | ALL_CHECK                            | CRC, Frame ID, and Timeout checks<br>AE_SDP_UPDATE_delay && M_S5                                                                                                                                                                                                                                              | F |
 
-- [x] AE_SDP chaind error occurred, the whole chain will be ignored.
+- [x] <font color=red>AE_SDP chaind error occurred, the whole chain will be ignored.</font>
   
   > If the entirety of the chained VSC_EXT_VESA SDPs are not received in time (i.e., the chained 
 SDP with HB2[7] = 0 is not received in time), the DP Sink device shall discard the incomplete 
 chained SDPs.
 
-- [ ] Receiving AE_SDP outside of the timeout window is not effective (TIMEOUT_WINDOW_MIN, TIMEOUT_WINDOW_MAX)
+- [ ] <font color=red>Receiving AE_SDP outside of the timeout window is not effective (TIMEOUT_WINDOW_MIN, TIMEOUT_WINDOW_MAX)</font>
 
-## AE_SDP Chain CRC Calculate
+## 1.4. AE SDP Chain CRC Calculate
 
 **Utilizes the existing RXSDP_REV module. Create cache queue to receive 32 bytes of AE_SDP data at a time and send 24 bytes of data at a time for CRC calculation**
 
@@ -99,11 +103,9 @@ chained SDPs.
 
 | AE_SDP_CRC caculate data                                                                                                                              | AE_SDP_CRC caculate done | AE_SDP_CRC caculate valid                                                                                   |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| pad_read_mask = ~(24{1}<<(32+4N(1+R)-AE_SDP read tail))<br>if (normal_read) DB[read tail+:24]<br>else if (pad_read) DB[read tail+:24] & pad_read_mask | read_done                | 4{normal_read}<br>{\|pad_read_mask[18+:6]\|pad_read_mask[12+:6]\|pad_read_mask[6+:6],\|pad_read_mask[0+:6]} |
+| pad_read_mask = ~(24{1}<<(32+4N(1+R)-AE_SDP read tail))<br>if (normal_read) DB[read tail+:24]<br>else if (pad_read) DB[read tail+:24] & pad_read_mask | read_done                | 4{normal_read}<br>{\|pad_read_mask[18+:6]\|pad_read_mask[12+:6]\|pad_read_mask[6+:6],\|pad_read_mask[0+:6]}<br>The mask here refers to the byte mask |
 
-**The mask here refers to the byte mask**
-
-## Defined SDPs CRC Map State
+## 1.5. Defined SDPs CRC Map State
 
 ```verilog
 always @(posedge LCLK or negedge RSTB)
@@ -141,7 +143,9 @@ wire SD_DATA = ONELANE ? (CNT >= 10'h2) :
 | Transition C_S0:C_S2                 | !ONElANE && (CNT == 3)<br>ONELANE && (CNT==5)<br>HB1(20h), HB2\[7](MIDDLE_OF_CHAINING=1), HB3[4:0](Packet Sequence \==0）<br>{DB3,DB4}\!= {01,00} (Extended VESA SDP)                                                |
 | Transition C_S1,C_S2:C_S0            | (ECC_END && HB1(20h) && HB2\[7]\==0) \|\| vcnt==1 \|\| timeout                                                                                                                                                       |
 
-## Defined SDP CRC Calculate
+<div STYLE="page-break-after: always;"></div>
+
+## 1.6. Defined SDP CRC Calculate
 
 - **Create a 48bytes queue to repack the sdp data**
 - **Sdp head first caches at the end of the queue**
@@ -159,11 +163,9 @@ wire SD_DATA = ONELANE ? (CNT >= 10'h2) :
 
 | NOAE_SDP_CRC caculate data                                                                                                                                         | NOAE_SDP_CRC caculate done | NOAE_SDP_CRC caculate valid                                                                                     |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| last_read_mask = 24{1}>>(NOAE_SDP read head-NOAE_SDP write tail+1)<br>if (normal_read) DB[read tail+:24]<br>else if (last_read) DB[read tail+:24] & last_read_mask | last_read 1p               | 4{normal_read}<br>{\|last_read_mask[18+:6]\|last_read_mask[12+:6]\|last_read_mask[6+:6],\|last_read_mask[0+:6]} |
+| last_read_mask = 24{1}>>(NOAE_SDP read head-NOAE_SDP write tail+1)<br>if (normal_read) DB[read tail+:24]<br>else if (last_read) DB[read tail+:24] & last_read_mask | last_read 1p               | 4{normal_read}<br>{\|last_read_mask[18+:6]\|last_read_mask[12+:6]\|last_read_mask[6+:6],\|last_read_mask[0+:6]}<br>The mask here refers to the byte mask |
 
-**The mask here refers to the byte mask**
-
-## ROI CRC Calculate
+## 1.7. ROI CRC Calculate
 
 ```verilog
 assign HWIDTH_SUB = (|HWIDTH[1:0])? {2'b0, HWIDTH[15:2]} : {2'b0, HWIDTH[15:2]}-1'b1;
@@ -186,7 +188,7 @@ assign H_VALID_RIGHT = HCNT == HRIGHT[15:2];
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | V_VALID && H_VALID_MID : 4{SFIFO_WREN0}<br>V_VALID && H_VALID_LEFT : 4{SFIFO_WREN0}<<(HLEFT[1:0])<br>00:1111<br>01:1110<br>10:1100<br>11:1000<br>V_VALID && H_VALID_RIGHT : 4{SFIFO_WREN0}>>(~HRIGHT[1:0]))<br>00:0001<br>01:0011<br>10:0111<br>11:1111<br>OTHERS : 0000 |
 
-## CRC Check Contrl
+## 1.8. CRC Check Contrl
 
 ![Enable_FUSA](pic/Enable_FUSA.png "Enable_FUSA")
 ![Disable_FUSA](pic/Disable_FUSA.png "Disable_FUSA")
@@ -198,11 +200,11 @@ assign H_VALID_RIGHT = HCNT == HRIGHT[15:2];
 | CRC on defined SDPs except AE_SDP        | M_S3 \|\| M_S4 \|\| M_S5                              | update \|\| !Enable | (Vblank && D_S0) up       | ALL_CHECK && M_S5                                                                                                                                                                                                                                                                                                                                                                                                |
 | CRC on AE_SDP                            | M_S4 \|\| M_S5                                        | update \|\| !Enable | AE_SDP_CRC caculate done  | ALL_CHECK && M_S5                                                                                                                                                                                                                                                                                                                                                                                                |
 | CRC on MSA                               | M_S3 \|\| M_S4 \|\| M_S5                              | update \|\| !Enable | Vblank up && Enable       | ALL_CHECK && M_S5                                                                                                                                                                                                                                                                                                                                                                                                |
-| CRC on Regions-of-Interest               | ROI_COUNT_SET && ROI_EN && (M_S3 \|\| M_S4 \|\| M_S5) | update \|\| !Enable | Vblank up && Enable       | ROI CRC check based on the ROI_MASK of the previous 2, the previous 1 and current frame<br>ROI_COUNT_SET && ROI_EN && M_S5 && (ROI_MASK_EN) && ALL_CHECK<br>if（AE_SDP_UPDATE) ROI_MASK_EN <= ROI_MASK_P2 & ROI_MASK_P1 & {DB27, DB26}<br>if（AE_SDP_UPDATE \|\| AE_SDP_LOSS) ROI_MASK_P2 <= ROI_MASK_P1<br>if（AE_SDP_UPDATE) ROI_MASK_P1 <= {DB27, DB26} <br>else if (AE_SDP_loss)  ROI_MASK_P1 <= ROI_MASK_EN |
+| CRC on Regions-of-Interest               | ROI_COUNT_SET && ROI_EN && (M_S3 \|\| M_S4 \|\| M_S5) | update \|\| !Enable | Vblank up && Enable       | <font color=red>ROI CRC check based on the ROI_MASK of the previous 2, the previous 1 and current frame</font><br>ROI_COUNT_SET && ROI_EN && M_S5 && (ROI_MASK_EN) && ALL_CHECK<br>if（AE_SDP_UPDATE) ROI_MASK_EN <= ROI_MASK_P2 & ROI_MASK_P1 & {DB27, DB26}<br>if（AE_SDP_UPDATE \|\| AE_SDP_LOSS) ROI_MASK_P2 <= ROI_MASK_P1<br>if（AE_SDP_UPDATE) ROI_MASK_P1 <= {DB27, DB26} <br>else if (AE_SDP_loss)  ROI_MASK_P1 <= ROI_MASK_EN |
 | Reconstructed Pixel CRC per Slice Column | M_S3 \|\| M_S4 \|\| M_S5                              | update \|\| !Enable | Vblank up_dealy && Enable | ALL_CHECK && M_S5                                                                                                                                                                                                                                                                                                                                                                                                |
 | Compressed Pixel Frame CRC               | M_S3 \|\| M_S4 \|\| M_S5                              | update \|\| !Enable | Vblank up && Enable       | ALL_CHECK && M_S5                                                                                                                                                                                                                                                                                                                                                                                                |
 
-## Frame Counting and Timeout Monitoring
+## 1.9. Frame Counting and Timeout Monitoring
 
 |                                  | run                                                                                             | load/value                  | clear                                                                 | increment | initial |
 | -------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------- | --------- | ------- |
@@ -211,9 +213,9 @@ assign H_VALID_RIGHT = HCNT == HRIGHT[15:2];
 | Soft Fail Cnt for CRC, FRAME_ID  | ALL_CHECK && NOT_EQ<br>AE_SDP_LOSS                                                              |                             | !M_S5<br>Soft Fail Cnt > MAX_THRES<br>SOFT_FAIL_COUNTER_RESET(00A32h) | 1         | 0       |
 | Soft Fail Cnt for AE_SDP Timeout | ALL_CHECK && AE_SDP Timeout Cnt < TIMEOUT_WINDOW_MIN<br>AE_SDP Timeout Cnt > TIMEOUT_WINDOW_MAX |                             | !M_S5<br>Soft Fail Cnt > MAX_THRES<br>SOFT_FAIL_COUNTER_RESET(00A32h) | 1         | 0       |
 
-**When Timeout Window Max occurs, AE_SDP is still received before vactive, which can cause an additional Timeout Window Min error**
+<font color=red>When Timeout Window Max occurs, AE_SDP is still received before vactive, which can cause an additional Timeout Window Min error</font>
 
-## Debug Counter
+## 1.10. Debug Counter
 
 > DEBUG_FUSA_CONFIG_FRAME_ID_INTERVAL
 >
