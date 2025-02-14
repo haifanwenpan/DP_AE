@@ -4,7 +4,7 @@
 // CRC shift direction:         left (big endian)
 // Input word width:            48 bits
 `default_nettype none
-module CRC_32 (
+module CRC_32_DAT_48 (
     input  wire [31:0] CRC_IN,
     input  wire [47:0] DATA,
     output wire [31:0] CRC_OUT
